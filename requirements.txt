@@ -1,0 +1,11 @@
+# Core dependencies
+streamlit>=1.32.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+pathlib>=1.0.1
+
+# LLM Provider dependencies (optional)
+openai>=1.10.0  # For OpenAI support
+
+# Additional utilities
+python-dateutil>=2.8.2
