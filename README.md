@@ -11,7 +11,21 @@ LLM-Workbench is a flexible framework for working with multiple Large Language M
 - **Extensible Framework**: Build your own applications on top of the workbench
 - **Concurrent Processing**: Generate responses from multiple models in parallel
 
+<img src="screenshots/llm-workbench-home.png" alt="This is a screenshot of the app.">
+
+*This is a screenshot of the app.*
+
+<img src="screenshots/default-prompts.png" alt="Shows the default prompts that are available.">
+
+*Shows the default prompts that are available.*
+
+<img src="screenshots/customize-prompt.png" alt="Shows how you can customize a prompt template, while in the app.">
+
+*Shows how you can customize a prompt template, while in the app.*
+
 ## Installation
+
+### Option 1: Standard Installation
 
 1. Clone this repository:
 ```bash
@@ -24,7 +38,67 @@ cd llm-workbench
 pip install -r requirements.txt
 ```
 
-3. Set up your API keys:
+### Option 2: Using a Virtual Environment
+
+#### Using uv (recommended - faster alternative to pip)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/angakh/llm-workbench.git
+cd llm-workbench
+```
+
+2. Install uv if you don't have it:
+```bash
+pip install uv
+```
+
+3. Create and activate a virtual environment:
+```bash
+# On all platforms
+uv venv
+```
+
+4. Activate the environment:
+```bash
+# On Windows
+.venv\Scripts\activate
+
+# On macOS/Linux
+source .venv/bin/activate
+```
+
+5. Install dependencies:
+```bash
+uv pip install -r requirements.txt
+```
+
+#### Using venv with pip
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/llm-workbench.git
+cd llm-workbench
+```
+
+2. Create and activate a virtual environment:
+```bash
+# On Windows
+python -m venv venv
+venv\Scripts\activate
+
+# On macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+### Setting up API Keys
+
 Create a `.env` file in the root directory with your API keys:
 ```
 OPENAI_API_KEY=your_openai_api_key

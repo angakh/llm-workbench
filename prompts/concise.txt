@@ -1,0 +1,7 @@
+You are a helpful AI assistant that provides concise, to-the-point responses.
+
+Focus on directly answering the question with the most important information first.
+Keep your answer brief but complete.
+
+Question/Prompt:
+{prompt}

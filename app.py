@@ -49,56 +49,30 @@ load_dotenv()
 # Initialize streamlit
 st.set_page_config(page_title="LLM-Workbench", page_icon="🔬", layout="wide")
 
-# Add custom CSS for chat styling
+# Add custom CSS for styling
 st.markdown("""
 <style>
-    /* User message styling */
-    .user-message {
-        background-color: #f5f5f5;
-        border-radius: 10px;
-        padding: 10px 15px;
-        margin-bottom: 10px;
-    }
-    
-    /* AI message styling */
-    .ai-message {
-        background-color: #e6f2ff;
-        border-radius: 10px;
-        padding: 10px 15px;
-        margin-bottom: 10px;
-    }
-    
-    /* Message headers */
-    .message-header {
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    
-    /* Separator */
+    /* Message separator */
     .message-separator {
         margin: 15px 0;
         border-top: 1px solid #ddd;
     }
     
-    /* Model header */
-    .model-header {
+    /* Provider model header styling */
+    .provider-model-header {
         font-weight: bold;
-        margin-top: 5px;
-        margin-bottom: 5px;
         color: #555;
+        margin-bottom: 8px;
     }
     
-    /* Response time */
-    .response-time {
-        font-size: 0.8em;
-        color: #888;
-        text-align: right;
+    /* Custom styling for the chat container */
+    .stChatMessage {
+        padding: 8px !important;
     }
     
-    /* Error message */
-    .error-message {
-        color: #d9534f;
-        font-style: italic;
+    /* Improve spacing between chat messages */
+    .stChatMessageContent {
+        margin: 4px 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -106,6 +80,8 @@ st.markdown("""
 # Initialize session state if not already initialized
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
 if 'current_prompt_template' not in st.session_state:
     st.session_state.current_prompt_template = "default.txt"
 if 'editing_prompt' not in st.session_state:
@@ -135,6 +111,55 @@ prompt_manager = get_prompt_manager()
 # App title and description
 st.title("🔬 LLM-Workbench")
 st.markdown("An integrated workspace for interacting with multiple LLM providers and models")
+
+# Build Your Own Application accordion at the top of the page
+with st.expander("Build Your Own Application", expanded=False):
+    st.markdown("""
+    This is where you can extend the LLM-Workbench to build your own application.
+    The sidebar provides model selection and prompt management, while you can implement
+    your own logic here.
+
+    Example starter code:
+    ```python
+    # Access the provider manager
+    provider_manager = get_provider_manager()
+
+    # Access the prompt manager
+    prompt_manager = get_prompt_manager()
+
+    # Get selected models
+    selected_models = provider_manager.get_selected_models()
+
+    # Generate a response using selected models
+    def my_custom_function(text_input):
+        responses = provider_manager.generate_responses_from_all_selected(
+            prompt=text_input,
+            temperature=0.7,
+            max_tokens=1000
+        )
+        return responses
+    ```
+    """)
+    
+    # Optional: Add some more interactive elements here
+    if st.checkbox("Show simple example"):
+        st.code("""
+# Example: Generate a response and extract key points
+custom_prompt = "Summarize the key features of LLMs"
+        
+# Get responses from all selected models
+responses = provider_manager.generate_responses_from_all_selected(
+    prompt=custom_prompt,
+    temperature=0.7,
+    max_tokens=500
+)
+
+# Display the responses
+for response in responses:
+    st.subheader(f"{response['provider']} / {response['model']}")
+    st.write(response['text'])
+    st.caption(f"Response time: {response['time']:.2f}s")
+        """, language="python")
 
 # Create a sidebar for settings
 st.sidebar.title("Settings")
@@ -283,65 +308,55 @@ else:
 st.markdown("---")
 st.markdown("### Chat")
 
-# Display chat history with improved styling
-for prompt, responses in st.session_state.chat_history:
-    # User message with light gray background
-    st.markdown(f"""
-    <div class="user-message">
-        <div class="message-header">You:</div>
-        {prompt}
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Display each model's response
-    for response in responses:
-        # Determine the message class based on error status
-        message_class = "ai-message"
-        
-        # Format the response
-        if response.get("error"):
-            response_text = f"""
-            <div class="model-header">{response["provider"]} / {response["model"]}</div>
-            <div class="error-message">Error: {response["error"]}</div>
-            <div class="response-time">Time: {response["time"]:.2f}s</div>
-            """
-        else:
-            response_text = f"""
-            <div class="model-header">{response["provider"]} / {response["model"]}</div>
-            {response["text"]}
-            <div class="response-time">Time: {response["time"]:.2f}s</div>
-            """
-        
-        # AI response with light blue background
-        st.markdown(f"""
-        <div class="{message_class}">
-            {response_text}
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Add a separator
-    st.markdown('<div class="message-separator"></div>', unsafe_allow_html=True)
+# Define provider-to-emoji mapping for avatars
+def get_provider_emoji(provider_name):
+    """Return an emoji for the provider to use as avatar"""
+    provider_emojis = {
+        "openai": "🟢",    # Green circle for OpenAI
+        "anthropic": "🟣",  # Purple circle for Anthropic
+        "ollama": "🟠",     # Orange circle for Ollama
+        # Add more providers as needed
+    }
+    # Default to a blue circle if provider not in mapping
+    return provider_emojis.get(provider_name.lower(), "🔵")
 
-# Input for new messages
-user_prompt = st.text_area("Enter your prompt:", height=100, key="user_prompt_input")
+# Display existing chat history with native Streamlit components
+for i, (prompt, responses) in enumerate(st.session_state.chat_history):
+    # User message
+    with st.chat_message("user"):
+        st.write(prompt)
+    
+    # AI responses
+    for response in responses:
+        # Get appropriate emoji for the provider
+        provider_emoji = get_provider_emoji(response['provider'])
+        
+        # Show response with provider emoji as avatar
+        with st.chat_message("assistant", avatar=provider_emoji):
+            # Add provider/model header
+            st.markdown(f"**{response['provider']} / {response['model']}**")
+            
+            if response.get("error"):
+                st.error(f"Error: {response['error']}")
+            else:
+                st.write(response["text"])
+            
+            st.caption(f"Response time: {response['time']:.2f}s")
 
 # Check if any models are selected
 any_models_selected = any(len(models) > 0 for models in st.session_state.selected_models.values())
 
-# Send button - disabled if no models selected
-send_button = st.button(
-    "Send", 
-    key="send_button", 
+# Chat input using Streamlit's native chat_input
+user_prompt = st.chat_input(
+    "Enter your prompt:", 
+    key="user_prompt_chat_input", 
     disabled=not any_models_selected or st.session_state.generating_response
 )
 
-if send_button and user_prompt:
+if user_prompt and not st.session_state.generating_response:
     # Start generating response
     st.session_state.generating_response = True
-    st.rerun()
-
-# Trigger response generation if the flag is set
-if st.session_state.generating_response and user_prompt:
+    
     with st.spinner("Generating responses..."):
         try:
             # Get the current prompt template
@@ -353,6 +368,10 @@ if st.session_state.generating_response and user_prompt:
                 # Format the prompt with the template
                 formatted_prompt = prompt_manager.format_prompt(template, user_prompt)
             
+            # Show the user's message immediately 
+            with st.chat_message("user"):
+                st.write(user_prompt)
+            
             # Generate responses from all selected models
             responses = provider_manager.generate_responses_from_all_selected(
                 prompt=formatted_prompt,
@@ -363,51 +382,33 @@ if st.session_state.generating_response and user_prompt:
             # Sort responses by provider and model name for consistent ordering
             responses.sort(key=lambda x: (x["provider"], x["model"]))
             
+            # Display each model's response as it comes in
+            for response in responses:
+                # Get appropriate emoji for the provider
+                provider_emoji = get_provider_emoji(response['provider'])
+                
+                # Show response with provider emoji as avatar
+                with st.chat_message("assistant", avatar=provider_emoji):
+                    # Add provider/model header
+                    st.markdown(f"**{response['provider']} / {response['model']}**")
+                    
+                    if response.get("error"):
+                        st.error(f"Error: {response['error']}")
+                    else:
+                        st.write(response["text"])
+                    
+                    st.caption(f"Response time: {response['time']:.2f}s")
+            
             # Add to chat history
             st.session_state.chat_history.append((user_prompt, responses))
             
-            # Reset the input and generation flag
-            user_prompt = ""
+            # Reset the generation flag
             st.session_state.generating_response = False
-            
-            # Rerun to update the UI
-            st.rerun()
             
         except Exception as e:
             logger.error(f"Error generating responses: {e}")
             st.error(f"Error generating responses: {str(e)}")
             st.session_state.generating_response = False
-
-# Extension point for custom applications
-st.markdown("---")
-st.markdown("### Build Your Own Application")
-st.markdown("""
-This is where you can extend the LLM-Workbench to build your own application.
-The sidebar provides model selection and prompt management, while you can implement
-your own logic here.
-
-Example starter code:
-```python
-# Access the provider manager
-provider_manager = get_provider_manager()
-
-# Access the prompt manager
-prompt_manager = get_prompt_manager()
-
-# Get selected models
-selected_models = provider_manager.get_selected_models()
-
-# Generate a response using selected models
-def my_custom_function(text_input):
-    responses = provider_manager.generate_responses_from_all_selected(
-        prompt=text_input,
-        temperature=0.7,
-        max_tokens=1000
-    )
-    return responses
-```
-""")
-
-# Footer
-st.markdown("---")
-st.markdown("LLM-Workbench - A flexible framework for working with multiple LLM providers and models")
+            
+    # Use rerun to update the UI
+    st.rerun()
